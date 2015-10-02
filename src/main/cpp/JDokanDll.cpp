@@ -66,7 +66,7 @@ JNIEXPORT jint JNICALL Java_com_github_dokandev_dokanjava_Dokan_mount
 		ZeroMemory(&operations, sizeof(DOKAN_OPERATIONS));
 		operations.CreateFile = CreateFile;
 		operations.OpenDirectory = OnOpenDirectory;
-		operations.CreateDirectoryW = OnCreateDirectory;
+		operations.CreateDirectory = OnCreateDirectory;
 		operations.Cleanup = OnCleanup;
 		operations.CloseFile = OnCloseFile;
 		operations.ReadFile = OnReadFile;
@@ -75,11 +75,12 @@ JNIEXPORT jint JNICALL Java_com_github_dokandev_dokanjava_Dokan_mount
 		operations.GetFileInformation = OnGetFileInformation;
 		operations.FindFiles = OnFindFiles;
 		//operations.FindFilesWithPattern = OnFindFilesWithPattern;
-		operations.SetFileAttributesW = OnSetFileAttributes;
+		operations.FindFilesWithPattern = NULL;
+		operations.SetFileAttributes = OnSetFileAttributes;
 		operations.SetFileTime = OnSetFileTime;
-		operations.DeleteFileW = OnDeleteFile;
+		operations.DeleteFile = OnDeleteFile;
 		operations.DeleteDirectory = OnDeleteDirectory;
-		operations.MoveFileW = OnMoveFile;
+		operations.MoveFile = OnMoveFile;
 		operations.SetEndOfFile = OnSetEndOfFile;
 		operations.LockFile = OnLockFile;
 		operations.UnlockFile = OnUnlockFile;

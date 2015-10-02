@@ -36,10 +36,20 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 
-public final class LibraryLoader {
+public final class LibraryLoader { 
+ 
+  public enum CPU {
+    x86,        //ia32
+    X64,
+    UNKNOWN;
+
+    @Override
+    public String toString() { return name().toLowerCase(LOCALE); }
+}
 
   private static final Logger log = LoggerFactory.getLogger(LibraryLoader.class);
-
+  private static final java.util.Locale LOCALE = java.util.Locale.ENGLISH;
+  
   private LibraryLoader() {}
 
   /**
@@ -100,19 +110,42 @@ public final class LibraryLoader {
     return false;
   }
 
+  private static CPU getCPU() {
+    String osArchString = System.getProperty("os.arch", "unknown").toLowerCase();
+    if (osArchString.equals("x86")|| osArchString.equals("i386")|| osArchString.equals("i86pc")) {
+        return CPU.x86;
+    } else if (osArchString.equals("x86_64")|| osArchString.equals("amd64")) {
+        return CPU.X64;
+    } 
+
+    throw new RuntimeException("cannot determine CPU");
+  }
+  
   private static boolean loadFromJar(String libname) {
     log.debug("loading native library '{}' from '{}'", libname, jarFileName());
     String filename = System.mapLibraryName(libname);
-    if (ClassLoader.getSystemClassLoader().getResource(filename) == null) {
-      log.debug("{} was not found in {}", filename, jarFileName());
+    CPU cpu = getCPU();
+    String jarPath;
+    if (cpu == CPU.x86) {
+      jarPath = "native/x86/" + filename;
+    } else if (cpu == CPU.X64) {
+      jarPath = "native/x64/" + filename;
+    } else {
+      throw new RuntimeException("No native library exists for this CPU achitecture.");
+    }
+    
+    ClassLoader loader = LibraryLoader.class.getClassLoader();
+    
+    if (loader.getResource(jarPath) == null) {
+      log.debug("{} was not found in {}", jarPath, jarFileName());
       return false;
     } else {
       try {
         String[] splits = filename.split("\\.", 2);
         Path temp = Files.createTempFile(splits[0], splits.length > 1 ? "." + splits[1] : ".dll");
-        log.debug("extracting '{}' from '{}' to '{}'", filename, jarFileName(), temp);
+        log.debug("extracting '{}' from '{}' to '{}'", jarPath, jarFileName(), temp);
         temp.toFile().deleteOnExit();
-        copyResource(ClassLoader.getSystemClassLoader(), filename, temp,
+        copyResource(loader, jarPath, temp,
             StandardCopyOption.REPLACE_EXISTING);
         System.load(temp.toString());
         return true;
@@ -137,7 +170,8 @@ public final class LibraryLoader {
   @VisibleForTesting
   static boolean isLoadedFromJar(Class<?> clazz) {
     requireNonNull(clazz);
-    return clazz.getResource(clazz.getSimpleName() + ".class").toString().startsWith("jar");
+    String className = clazz.getResource(clazz.getSimpleName() + ".class").toString();
+    return className.startsWith("jar");
   }
 
 }
